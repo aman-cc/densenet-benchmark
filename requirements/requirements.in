@@ -5,4 +5,5 @@ torchvision
 tensorboard
 pillow
 psutil
+torch-tensorrt
 
