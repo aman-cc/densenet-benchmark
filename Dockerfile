@@ -1,4 +1,4 @@
-FROM nvidia/cuda:13.0.1-base-ubuntu24.04
+FROM nvidia/cuda:13.0.1-devel-ubuntu24.04
 
 LABEL description="SatSure Assignment"
 LABEL maintainer="Aman Kumar <amankumar528491@gmail.com>"

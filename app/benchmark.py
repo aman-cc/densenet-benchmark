@@ -233,7 +233,7 @@ def main():
     parser.add_argument(
         "--modes",
         type=str,
-        default="baseline,amp,channels_last,compile,jit,quantize,trt",
+        default="baseline,amp,channels_last,compile,quantize,trt",
         help="Comma-separated optimization modes",
     )
     args = parser.parse_args()
