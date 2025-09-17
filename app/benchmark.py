@@ -84,10 +84,10 @@ def run_single(
 
     # Model
     model = torchvision.models.densenet121(weights=DenseNet121_Weights.DEFAULT)
-    model = prepare_model(model, optimization, device)
+    example = torch.randn(batch_size, 3, 224, 224, device=device)
+    model = prepare_model(model, optimization, device, input_shape=tuple(example.shape))
 
     # maybe JIT after an example batch
-    example = torch.randn(batch_size, 3, 224, 224, device=device)
     example = maybe_convert_input(example, optimization)
     model = maybe_jit(model, example, optimization)
 
@@ -208,6 +208,7 @@ def run_all(
 
     rows: List[BenchmarkRow] = []
     for opt in optimizations:
+        batch_sizes = [1] if opt in ["trt", "trt_fp16"] else BATCH_SIZES
         for bs in batch_sizes:
             row = run_single(
                 optimization=opt,
@@ -232,7 +233,7 @@ def main():
     parser.add_argument(
         "--modes",
         type=str,
-        default="baseline,amp,channels_last,compile,jit,quantize",
+        default="baseline,amp,channels_last,compile,jit,quantize,trt",
         help="Comma-separated optimization modes",
     )
     args = parser.parse_args()
