@@ -3,16 +3,18 @@ from __future__ import annotations
 import argparse
 import csv
 import os
+import os.path as osp
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import Iterable, List, Tuple, Dict, Optional
 
 import torch
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.models import DenseNet121_Weights
+from tqdm import tqdm
 from loguru import logger
 
 from data import get_val_loader
@@ -22,6 +24,65 @@ from utils import SystemMetrics, get_system_metrics
 torch.set_float32_matmul_precision("high")
 
 BATCH_SIZES = [1, 4, 8, 16, 32]
+
+
+def save_ground_truth_predictions(
+    model: torch.nn.Module, 
+    loader: DataLoader, 
+    device: torch.device, 
+    optimization: OptimizationName,
+    ground_truth_csv: Path
+) -> None:
+    """Save model predictions as ground truth labels to CSV"""
+    predictions = []
+    sample_ids = []
+
+    with torch.no_grad():
+        for batch_idx, images in enumerate(tqdm(loader)):
+            images = images.to(device, non_blocking=True)
+            images = maybe_convert_input(images, optimization)
+            with inference_context(optimization, device):
+                outputs = model(images)
+            probs = torch.softmax(outputs, dim=1)
+            _, pred1 = probs.topk(1, dim=1)
+            _, pred5 = probs.topk(5, dim=1)
+            # Store predictions for each sample in the batch
+            for i in range(pred1.size(0)):
+                sample_id = batch_idx * loader.batch_size + i
+                sample_ids.append(sample_id)
+                predictions.append({
+                    'sample_id': sample_id,
+                    'pred_top1': pred1[i].item(),
+                    'pred_top5': pred5[i].tolist()
+                })
+
+    # Save to CSV
+    with ground_truth_csv.open("w", newline="") as f:
+        fieldnames = ['sample_id', 'pred_top1', 'pred_top5']
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(predictions)
+
+
+def load_ground_truth_predictions(ground_truth_csv: Path) -> Dict[int, Dict]:
+    """Load ground truth predictions from CSV"""
+    ground_truth = {}
+
+    if not ground_truth_csv.exists():
+        logger.warning(f"Ground truth file {ground_truth_csv} does not exist")
+        return ground_truth
+
+    with ground_truth_csv.open("r", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            sample_id = int(row['sample_id'])
+            ground_truth[sample_id] = {
+                # 'true_label': int(row['true_label']),
+                'pred_top1': int(row['pred_top1']),
+                'pred_top5': eval(row['pred_top5'])  # Convert string representation back to list
+            }
+
+    return ground_truth
 
 
 @dataclass
@@ -42,25 +103,36 @@ class BenchmarkRow:
 
 
 def measure_accuracy(
-    model: torch.nn.Module, loader: DataLoader, device: torch.device, optimization: OptimizationName
+    model: torch.nn.Module, loader: DataLoader, device: torch.device, optimization: OptimizationName,
+    ground_truth: Dict[int, Dict] = None
 ) -> Tuple[float, float]:
     """Method to get model accuracy metrics for the model"""
     top1_correct = 0
     top5_correct = 0
     total = 0
     with torch.no_grad():
-        for images, targets in loader:
+        for batch_idx, images in enumerate(loader):
             images = images.to(device, non_blocking=True)
-            targets = targets.to(device, non_blocking=True)
             images = maybe_convert_input(images, optimization)
             with inference_context(optimization, device):
                 outputs = model(images)
             probs = torch.softmax(outputs, dim=1)
             _, pred1 = probs.topk(1, dim=1)
             _, pred5 = probs.topk(5, dim=1)
-            top1_correct += (pred1.squeeze(1) == targets).sum().item()
-            top5_correct += sum(targets[i].item() in pred5[i].tolist() for i in range(targets.size(0)))
-            total += targets.size(0)
+
+            for i in range(pred1.size(0)):
+                sample_id = batch_idx * loader.batch_size + i
+                if sample_id in ground_truth:
+                    # Compare against ground truth predictions
+                    gt_pred1 = ground_truth[sample_id]['pred_top1']
+                    gt_pred5 = ground_truth[sample_id]['pred_top5']
+
+                    if pred1[i].item() == gt_pred1:
+                        top1_correct += 1
+                    if pred1[i].item() in gt_pred5:
+                        top5_correct += 1
+                    total += 1
+
     if total == 0:
         return 0.0, 0.0
     return top1_correct / total, top5_correct / total
@@ -81,10 +153,11 @@ def run_single(
     writer: SummaryWriter,
     results_csv: Path,
     logdir_profiles: Path,
+    is_first_run: bool = False,
 ) -> BenchmarkRow:
     """Method to inference on the specified optimization, batch and device"""
     # Data
-    val_loader, _ = get_val_loader(batch_size=batch_size)
+    val_loader = get_val_loader(batch_size=batch_size)
 
     # Model
     model = torchvision.models.densenet121(weights=DenseNet121_Weights.DEFAULT)
@@ -138,9 +211,15 @@ def run_single(
 
     avg_latency_ms = sum(latencies) / len(latencies) if latencies else 0.0
     throughput = (num_samples / (sum(latencies) / 1000.0)) if latencies else 0.0
+    ground_truth_csv = Path(osp.join(osp.dirname(results_csv), "pred_label.csv"))
 
-    # Accuracy pass on small subset
-    acc_top1, acc_top5 = measure_accuracy(model, val_loader, device, optimization)
+    if is_first_run:
+        # Save ground truth predictions for first run
+        save_ground_truth_predictions(model, val_loader, device, optimization, ground_truth_csv)
+        val_loader = get_val_loader(batch_size=batch_size)
+
+    ground_truth = load_ground_truth_predictions(ground_truth_csv)
+    acc_top1, acc_top5 = measure_accuracy(model, val_loader, device, optimization, ground_truth)
 
     # System metrics
     metrics: SystemMetrics = get_system_metrics(device_index=0)
@@ -211,8 +290,11 @@ def run_all(
     profiles_dir.mkdir(parents=True, exist_ok=True)
     writer = SummaryWriter(log_dir=os.path.join(logdir, "tensorboard"))
     results_csv = Path(output_dir) / "benchmark_results.csv"
+    ground_truth_csv = Path(output_dir) / "ground_truth_predictions.csv"
 
     rows: List[BenchmarkRow] = []
+    is_first_run = True
+
     for opt in optimizations:
         batch_sizes = [1] if opt in ["trt", "trt_fp16"] else BATCH_SIZES
         for bs in batch_sizes:
@@ -223,7 +305,13 @@ def run_all(
                 writer=writer,
                 results_csv=results_csv,
                 logdir_profiles=profiles_dir,
+                is_first_run=is_first_run,
             )
+
+            # Load ground truth after first run
+            if is_first_run:
+                is_first_run = False
+
             logger.info(f"{opt} | bs={bs} | acc={row.accuracy_top1:.2f} | latency={row.latency_ms:.2f}ms | thrpt={row.throughput_samples_sec:.2f} it/s")
             rows.append(row)
     writer.flush()
