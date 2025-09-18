@@ -6,4 +6,5 @@ tensorboard
 pillow
 psutil
 torch-tensorrt
+loguru
 
