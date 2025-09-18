@@ -40,10 +40,10 @@ def get_system_metrics(device_index: int = 0) -> SystemMetrics:
         gpu_util = float(util.gpu)
         vram_mb = float(mem.used) / (1024**2)
     return SystemMetrics(
-        ram_usage_mb=ram_mb,
-        vram_usage_mb=vram_mb,
-        cpu_utilization_pct=cpu_pct,
-        gpu_utilization_pct=gpu_util,
+        ram_usage_mb=round(ram_mb, 2),
+        vram_usage_mb=round(vram_mb, 2),
+        cpu_utilization_pct=round(cpu_pct, 2),
+        gpu_utilization_pct=round(gpu_util, 2),
         peak_vram_allocated_mb=peak_vram,
     )
 

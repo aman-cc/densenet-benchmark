@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Callable, Literal, Optional
 
 import torch
@@ -31,7 +32,10 @@ def prepare_model(model: nn.Module, optimization: OptimizationName, device: torc
             enabled_precisions={torch.float16},
             workspace_size=1 << 30,
         )
-    return model.eval()
+    model = model.eval()
+    os.makedirs("results/models", exist_ok=True)
+    torch.save(model, f"results/models/{optimization}_{device}.pth")
+    return model
 
 
 def inference_context(optimization: OptimizationName, device: torch.device):

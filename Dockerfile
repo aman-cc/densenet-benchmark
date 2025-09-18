@@ -25,11 +25,11 @@ RUN mv /usr/local/bin/$UV_RELEASE_NAME/uv /usr/local/bin/uv
 RUN chmod +x /usr/local/bin/uv
 
 COPY requirements/requirements.txt /tmp/requirements.txt
-COPY . /srv/
-WORKDIR /work/
-
+WORKDIR /srv/
 RUN uv venv --python $PYTHON_VERSION
 RUN uv pip install -r /tmp/requirements.txt \
     --index-strategy unsafe-best-match \
     --trusted-host pypi.ngc.nvidia.com
+COPY . /srv/
 
+CMD ["uv", "run", "app/benchmark.py"]
