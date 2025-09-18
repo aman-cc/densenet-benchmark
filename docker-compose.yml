@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   app:
     build: .
@@ -12,8 +11,8 @@ services:
           devices:
             - capabilities: [gpu]
     volumes:
-      - ./results:/app/results
-      - ./logs:/app/logs
+      - ${OUTPUT_DIR:-./results}:/srv/results
+      - ./logs:/srv/logs
     ports:
       - "8080:8080"  # Health check endpoint
     # healthcheck:

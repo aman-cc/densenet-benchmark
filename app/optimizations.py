@@ -5,7 +5,12 @@ from typing import Callable, Literal, Optional
 
 import torch
 from torch import nn
-import torch_tensorrt
+from loguru import logger
+
+AVAIL_CUDA = False
+if torch.cuda.is_available():
+    import torch_tensorrt
+    AVAIL_CUDA = True
 
 OptimizationName = Literal["baseline", "amp", "channels_last", "compile", "jit", "trt"]
 
@@ -19,19 +24,25 @@ def prepare_model(model: nn.Module, optimization: OptimizationName, device: torc
     elif optimization in ("quantize"):
         model = model.half()
     elif optimization == "trt":
-        model = torch_tensorrt.compile(
-            model,
-            inputs=[torch_tensorrt.Input(input_shape, dtype=torch.float32)],
-            enabled_precisions={torch.float32},
-            workspace_size=1 << 30,
-        )
+        if AVAIL_CUDA:
+            model = torch_tensorrt.compile(
+                model,
+                inputs=[torch_tensorrt.Input(input_shape, dtype=torch.float32)],
+                enabled_precisions={torch.float32},
+                workspace_size=1 << 30,
+            )
+        else:
+            logger.info("CUDA not avaiable, skipping TensorRT optimization")
     elif optimization == "trt_fp16":
-        model = torch_tensorrt.compile(
-            model,
-            inputs=[torch_tensorrt.Input(input_shape, dtype=torch.float16)],
-            enabled_precisions={torch.float16},
-            workspace_size=1 << 30,
-        )
+        if AVAIL_CUDA:
+            model = torch_tensorrt.compile(
+                model,
+                inputs=[torch_tensorrt.Input(input_shape, dtype=torch.float16)],
+                enabled_precisions={torch.float16},
+                workspace_size=1 << 30,
+            )
+        else:
+            logger.info("CUDA not avaiable, skipping TensorRT optimization")
     model = model.eval()
     os.makedirs("results/models", exist_ok=True)
     torch.save(model, f"results/models/{optimization}_{device}.pth")

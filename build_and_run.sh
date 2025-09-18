@@ -24,8 +24,8 @@ docker build -t densenet-bench:latest .
 RUN_OPTS=(
 	--rm
 	--name densenet-bench-app
-	-v "$(pwd)/results:/app/results"
-	-v "$(pwd)/logs:/app/logs"
+	-v "$(pwd)/$OUTPUT_DIR:/srv/results"
+	-v "$(pwd)/logs:/srv/logs"
 )
 if [[ "$GPU_ENABLED" == "true" ]]; then
 	RUN_OPTS+=(--gpus all)
@@ -35,7 +35,7 @@ echo "[2/4] Starting TensorBoard..."
 docker compose up -d tensorboard || docker-compose up -d tensorboard
 
 echo "[3/4] Running benchmark container..."
-docker run "${RUN_OPTS[@]}" densenet-bench:latest &
+docker run "${RUN_OPTS[@]}" densenet-bench
 
 echo "[4/4] Summary:"
 if [[ -f "$OUTPUT_DIR/benchmark_results.csv" ]]; then

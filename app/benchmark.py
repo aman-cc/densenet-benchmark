@@ -13,6 +13,7 @@ import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.models import DenseNet121_Weights
+from loguru import logger
 
 from data import get_val_loader
 from optimizations import OptimizationName, inference_context, maybe_convert_input, maybe_jit, prepare_model
