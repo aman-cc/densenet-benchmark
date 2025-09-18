@@ -1,0 +1,4 @@
+FROM python:3.11.13-slim
+
+WORKDIR /logs
+RUN pip install --no-cache-dir tensorboard torch-tb-profiler tensorboard-plugin-profile
