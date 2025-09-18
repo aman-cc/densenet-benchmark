@@ -7,4 +7,5 @@ pillow
 psutil
 torch-tensorrt
 loguru
+nvidia-ml-py
 

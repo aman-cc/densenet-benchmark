@@ -144,11 +144,12 @@ def run_single(
 
     # System metrics
     metrics: SystemMetrics = get_system_metrics(device_index=0)
+    logged_device = f"{device}_{torch.cuda.get_device_name(0)}" if str(device) == "cuda" else str(device)
 
     row = BenchmarkRow(
         model_variant="densenet121",
         batch_size=batch_size,
-        device=str(device),
+        device=logged_device,
         ram_usage_mb=metrics.ram_usage_mb,
         vram_usage_mb=metrics.vram_usage_mb,
         cpu_utilization_pct=metrics.cpu_utilization_pct,
