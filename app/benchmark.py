@@ -44,6 +44,7 @@ class BenchmarkRow:
 def measure_accuracy(
     model: torch.nn.Module, loader: DataLoader, device: torch.device, optimization: OptimizationName
 ) -> Tuple[float, float]:
+    """Method to get model accuracy metrics for the model"""
     top1_correct = 0
     top5_correct = 0
     total = 0
@@ -66,6 +67,7 @@ def measure_accuracy(
 
 
 def estimate_model_size_mb(model: torch.nn.Module) -> float:
+    """Method to get model size for the model"""
     total_params = sum(p.numel() for p in model.parameters())
     # assume fp32 params by default
     bytes_total = total_params * 4
@@ -80,6 +82,7 @@ def run_single(
     results_csv: Path,
     logdir_profiles: Path,
 ) -> BenchmarkRow:
+    """Method to inference on the specified optimization, batch and device"""
     # Data
     val_loader, _ = get_val_loader(batch_size=batch_size)
 
@@ -199,6 +202,7 @@ def run_all(
     optimizations: Iterable[OptimizationName],
     batch_sizes: Iterable[int] = BATCH_SIZES,
 ) -> List[BenchmarkRow]:
+    """Method to inference on list of specified optimizations"""
     device = torch.device(device_str if torch.cuda.is_available() else "cpu")
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     Path(logdir).mkdir(parents=True, exist_ok=True)
