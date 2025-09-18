@@ -219,7 +219,7 @@ def run_all(
                 results_csv=results_csv,
                 logdir_profiles=profiles_dir,
             )
-            print(f"{opt} | bs={bs} | latency={row.latency_ms:.2f}ms | thrpt={row.throughput_samples_sec:.2f} it/s")
+            logger.info(f"{opt} | bs={bs} | latency={row.latency_ms:.2f}ms | thrpt={row.throughput_samples_sec:.2f} it/s")
             rows.append(row)
     writer.flush()
     writer.close()
@@ -246,9 +246,9 @@ def main():
         optimizations=optimizations,  # type: ignore[arg-type]
     )
     # Console summary
-    print("\nSummary:")
+    logger.info("\nSummary:")
     for r in rows:
-        print(
+        logger.info(
             f"{r.optimization_technique:>12} | bs={r.batch_size:<2} | lat={r.latency_ms:>8.2f}ms | thrput={r.throughput_samples_sec:>8.2f} | top1={r.accuracy_top1:.3f} | top5={r.accuracy_top5:.3f}"
         )
 
