@@ -235,8 +235,8 @@ def run_single(
         gpu_utilization_pct=metrics.gpu_utilization_pct,
         latency_ms=round(avg_latency_ms, 2),
         throughput_samples_sec=round(throughput, 2),
-        accuracy_top1=round(acc_top1, 4),
-        accuracy_top5=round(acc_top5, 4),
+        accuracy_top1=acc_top1,
+        accuracy_top5=acc_top5,
         model_size_mb=round(estimate_model_size_mb(model), 2),
         optimization_technique=optimization,
     )

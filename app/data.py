@@ -53,6 +53,7 @@ def get_val_images(data_path: str = "data", num_images: int = 100) -> List:
     os.makedirs(data_path, exist_ok=True)
     val_dir = "data/tiny-imagenet-200/val/images"
     if not osp.isfile(f"{data_path}/tiny-imagenet-200.zip"):
+        logger.info("Downloading mini ImageNet Dataset")
         download_file("http://cs231n.stanford.edu/tiny-imagenet-200.zip", f"{data_path}/tiny-imagenet-200.zip")
         unzip_file("data/tiny-imagenet-200.zip", "data")
 
