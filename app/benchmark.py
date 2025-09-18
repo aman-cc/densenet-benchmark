@@ -224,7 +224,7 @@ def run_all(
                 results_csv=results_csv,
                 logdir_profiles=profiles_dir,
             )
-            logger.info(f"{opt} | bs={bs} | latency={row.latency_ms:.2f}ms | thrpt={row.throughput_samples_sec:.2f} it/s")
+            logger.info(f"{opt} | bs={bs} | acc={row.accuracy_top1:.2f} | latency={row.latency_ms:.2f}ms | thrpt={row.throughput_samples_sec:.2f} it/s")
             rows.append(row)
     writer.flush()
     writer.close()

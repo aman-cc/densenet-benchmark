@@ -8,4 +8,7 @@ psutil
 torch-tensorrt
 loguru
 nvidia-ml-py
+scipy
+tqdm
+requests
 
