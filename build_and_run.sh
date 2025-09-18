@@ -32,7 +32,8 @@ if [[ "$GPU_ENABLED" == "true" ]]; then
 fi
 
 echo "[2/4] Starting TensorBoard..."
-docker compose up -d tensorboard || docker-compose up -d tensorboard
+docker compose up -d tensorboard-logger || docker-compose up -d tensorboard-logger
+docker compose up -d tensorboard-profiler || docker-compose up -d tensorboard-profiler
 
 echo "[3/4] Running benchmark container..."
 docker run "${RUN_OPTS[@]}" densenet-bench
