@@ -29,7 +29,7 @@ The benchmark suite is particularly valuable for ML engineers and researchers wh
 1. **Clone and navigate to the project:**
    ```bash
    git clone <repository-url>
-   cd ss
+   cd densenet-benchmark
    ```
 
 2. **Verify Docker and GPU support:**
@@ -60,10 +60,10 @@ The benchmark suite is particularly valuable for ML engineers and researchers wh
 ### Basic Usage
 ```bash
 # Run complete benchmark suite
-./build_and_run.sh --output-dir ./results --gpu-enabled true
+./build_and_run.sh --output-dir ./results
 
 # Run with custom parameters
-./build_and_run.sh --output-dir ./results --gpu-enabled true --batch-sizes "1,4,8,16,32"
+./build_and_run.sh --output-dir ./results --gpu-enabled <true/false>
 ```
 
 ### Advanced Usage Options
